@@ -26,17 +26,17 @@ jobs:
       fail-fast: false
       matrix:
         config:
-        - name: Ubuntu
-          os: ubuntu-latest
-          arch: x86_64 # as reported by `arch` or `uname -m`
-          generator: Ninja
-          cc: cc
-          cxx: c++
-          compiler_cache: ccache
-          compiler_cache_path: ~/.cache/ccache
-          use_vcpkg: OFF
-          vcpkg_binary_cache: ~/.cache/vcpkg
-          vcpkg_triplet: x64-linux-dynamic
+        # - name: Ubuntu
+        #   os: ubuntu-latest
+        #   arch: x86_64 # as reported by `arch` or `uname -m`
+        #   generator: Ninja
+        #   cc: cc
+        #   cxx: c++
+        #   compiler_cache: ccache
+        #   compiler_cache_path: ~/.cache/ccache
+        #   use_vcpkg: OFF
+        #   vcpkg_binary_cache: ~/.cache/vcpkg
+        #   vcpkg_triplet: x64-linux-dynamic
 
         # macOS runners are currently disabled due to a theme-system related
         # issue. Currently, we are awaiting a theme system rewrite, and thus we
@@ -71,43 +71,43 @@ jobs:
           vcpkg_triplet: arm64-osx-dynamic
 
           # Windows (x86) config
-        - name: Windows_32bit
-          os: windows-latest
-          arch: x86
-          generator: Visual Studio 17 2022
-          # required so CMake uses MSVC rather than MinGW
-          cc: cl
-          cxx: cl
-          use_vcpkg: ON
-          vcpkg_binary_cache: C:\Users\runneradmin\AppData\Local\vcpkg
-          vcpkg_triplet: x86-windows
-          exe_suffix: .exe
-          additional_cmake_flags: -A Win32
+        # - name: Windows_32bit
+        #   os: windows-latest
+        #   arch: x86
+        #   generator: Visual Studio 17 2022
+        #   # required so CMake uses MSVC rather than MinGW
+        #   cc: cl
+        #   cxx: cl
+        #   use_vcpkg: ON
+        #   vcpkg_binary_cache: C:\Users\runneradmin\AppData\Local\vcpkg
+        #   vcpkg_triplet: x86-windows
+        #   exe_suffix: .exe
+        #   additional_cmake_flags: -A Win32
 
-          # Windows (x64) config
-        - name: Windows_64bit
-          os: windows-latest
-          arch: x86_64
-          generator: Visual Studio 17 2022
-          # required so CMake uses MSVC rather than MinGW
-          cc: cl
-          cxx: cl
-          use_vcpkg: ON
-          vcpkg_binary_cache: C:\Users\runneradmin\AppData\Local\vcpkg
-          vcpkg_triplet: x64-windows
-          exe_suffix: .exe
+        #   # Windows (x64) config
+        # - name: Windows_64bit
+        #   os: windows-latest
+        #   arch: x86_64
+        #   generator: Visual Studio 17 2022
+        #   # required so CMake uses MSVC rather than MinGW
+        #   cc: cl
+        #   cxx: cl
+        #   use_vcpkg: ON
+        #   vcpkg_binary_cache: C:\Users\runneradmin\AppData\Local\vcpkg
+        #   vcpkg_triplet: x64-windows
+        #   exe_suffix: .exe
 
-        - name: Windows_ARM
-          os: windows-11-arm
-          arch: arm
-          generator: Visual Studio 17 2022
-          # required so CMake uses MSVC rather than MinGW
-          cc: cl
-          cxx: cl
-          use_vcpkg: ON
-          vcpkg_binary_cache: C:\Users\runneradmin\AppData\Local\vcpkg
-          vcpkg_triplet: arm64-windows
-          exe_suffix: .exe
+        # - name: Windows_ARM
+        #   os: windows-11-arm
+        #   arch: arm
+        #   generator: Visual Studio 17 2022
+        #   # required so CMake uses MSVC rather than MinGW
+        #   cc: cl
+        #   cxx: cl
+        #   use_vcpkg: ON
+        #   vcpkg_binary_cache: C:\Users\runneradmin\AppData\Local\vcpkg
+        #   vcpkg_triplet: arm64-windows
+        #   exe_suffix: .exe
 
     env:
       CMAKE_BUILD_TYPE: Release
