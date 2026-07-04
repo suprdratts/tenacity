@@ -176,9 +176,12 @@ jobs:
       run: |
         exec bash "scripts/ci/dependencies.sh"
 
+    # Note: currently only the Windows 11 ARM runner image doesn't have ccache
+    # installed. It's okay if we run this on the 32-bit and 64-bit runners, so
+    # just run this step for all Windows runners.
     - name: "[Windows] Install dependencies"
       if: runner.os == 'Windows'
-      run: choco install innosetup
+      run: choco install ccache
 
     - name: Install Apple codesigning certificates
       uses: apple-actions/import-codesign-certs@v7
