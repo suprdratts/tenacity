@@ -1310,6 +1310,10 @@ else()
                 DESTINATION "${_LIBDIR}"
                 USE_SOURCE_PERMISSIONS
                 FILES_MATCHING PATTERN "*.so*" )
+        install( DIRECTORY "${_DEST}/modules/"
+                DESTINATION "${_PKGLIB}/modules"
+                USE_SOURCE_PERMISSIONS
+                FILES_MATCHING PATTERN "*.so*" )
         install( FILES "${CMAKE_SOURCE_DIR}/LICENSE.txt" "${CMAKE_SOURCE_DIR}/README.md"
                 DESTINATION "${_DATADIR}/doc/${APP_NAME}" )
         install( FILES "${CMAKE_SOURCE_DIR}/resources/EQDefaultCurves.xml"
@@ -1321,6 +1325,11 @@ else()
 
         install( DIRECTORY "${_DEST}/${_LIBDIR}/"
                  DESTINATION "${_LIBDIR}"
+                 USE_SOURCE_PERMISSIONS
+                 FILES_MATCHING PATTERN "*.so*" )
+				 
+        install( DIRECTORY "${_DEST}/modules/"
+                 DESTINATION "${_PKGLIB}/modules"
                  USE_SOURCE_PERMISSIONS
                  FILES_MATCHING PATTERN "*.so*" )
 
