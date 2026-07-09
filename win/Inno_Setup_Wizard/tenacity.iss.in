@@ -244,6 +244,29 @@ Filename: "{app}\tenacity.exe"; Description: "{cm:LaunchProgram,Tenacity}"; Flag
 ; Set this to the base of the unofficial  Inno Setup translations
 #define UrlBase "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/"
 
+; PowerShell command run by Get()/GetOfficial().
+; Forces TLS 1.2+ (default PowerShell 5 negotiates TLS 1.0, which GitHub refuses on some CI runners),
+; retries up to three times, and non-zero exits on failure so the Inno Setup preprocessor sees the error
+#define DownloadCmd(BASE, URL, DEST) \
+  "-NoProfile -ExecutionPolicy Bypass -Command """ + \
+  "[Net.ServicePointManager]::SecurityProtocol = " + \
+  "[Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; " + \
+  "$src = '" + BASE + URL + "'; " + \
+  "$dst = '" + DEST + "'; " + \
+  "Write-Host ('Downloading: ' + $src); " + \
+  "for ($i = 1; $i -le 3; $i++) { " + \
+  "  try { (New-Object System.Net.WebClient).DownloadFile($src, $dst); " + \
+  "        if ((Get-Item $dst).Length -gt 0) { exit 0 } " + \
+  "        else { throw 'empty file' } " + \
+  "  } catch { " + \
+  "    Write-Host ('Attempt ' + $i + ' failed: ' + $_.Exception.Message); " + \
+  "    if ($i -lt 3) { Start-Sleep -Seconds ($i * 2) } " + \
+  "  } " + \
+  "}; " + \
+  "Write-Error ('Failed to download ' + $src + ' after 3 attempts'); " + \
+  "exit 1" + \
+  """"
+
 ; This macro will use the Windows PowerShell to download the given translation into
 ; the Inno Setup Languages folder if it hasn't already been downloaded.
 ; (Sorry, it's not a quick process, but it only happens once.)
@@ -251,7 +274,10 @@ Filename: "{app}\tenacity.exe"; Description: "{cm:LaunchProgram,Tenacity}"; Flag
   Local[0] = ".\Languages\unofficial\" + Copy(URL, RPos("/", URL) + 1), \
   Local[1] = (FileExists(Local[0]) \
     ? "alreadyexists" \
-    : Exec("powershell", "echo 'Downloading: " + URL + "'; $wc = new-object System.Net.WebClient; $wc.DownloadFile('" + URLBase + URL + "', '" + Local[0] + "')", '.\', , SW_NORMAL)), \
+    : Exec("powershell", DownloadCmd(URLBase, URL, Local[0]), '.\', , SW_NORMAL)), \
+  Local[2] = (FileExists(Local[0]) \
+    ? Local[0] \
+    : Error("Failed to download unofficial language file: " + URL)), \
   Local[0]
 
 #define OfficialUrlBase "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/"
@@ -262,7 +288,10 @@ Filename: "{app}\tenacity.exe"; Description: "{cm:LaunchProgram,Tenacity}"; Flag
   Local[0] = ".\Languages\unofficial\" + Copy(URL, RPos("/", URL) + 1), \
   Local[1] = (FileExists(Local[0]) \
     ? "alreadyexists" \
-    : Exec("powershell", "echo 'Downloading: " + URL + "'; $wc = new-object System.Net.WebClient; $wc.DownloadFile('" + OfficialUrlBase + URL + "', '" + Local[0] + "')", '.\', , SW_NORMAL)), \
+    : Exec("powershell", DownloadCmd(OfficialUrlBase, URL, Local[0]), '.\', , SW_NORMAL)), \
+  Local[2] = (FileExists(Local[0]) \
+    ? Local[0] \
+    : Error("Failed to download official language file: " + URL)), \
   Local[0]
 
 ; This macro will define a dummy translation based on the Defaults.isl
