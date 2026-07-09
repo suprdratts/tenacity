@@ -189,6 +189,15 @@ function( tenacity_module_fn NAME SOURCES IMPORT_TARGETS
    else()
       set( REAL_LIBTYPE "${LIBTYPE}" )
    endif()
+   
+   # Disable vcpkg's per-target applocal DLL deployment for shared libraries.
+   # It was flooding the log with redundant "deploying dependencies" messages.
+   # The executables still get their runtime DLLs deployed transitively.
+   # Modules still require to be enabled, so we do not disable for them.
+   if (NOT LIBTYPE STREQUAL "MODULE")
+      set( VCPKG_APPLOCAL_DEPS OFF )
+   endif()
+   
    add_library( ${TARGET} ${REAL_LIBTYPE} )
 
    # Manual propagation seems to be necessary from
