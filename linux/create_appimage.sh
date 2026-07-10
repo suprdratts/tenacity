@@ -115,6 +115,14 @@ fi
 # Prevent linuxdeploy setting RUNPATH in binaries that shouldn't have it
 mv "${appdir}/bin/findlib" "${appdir}/../findlib"
 
+# stash plugin modules to restore them later so they aren't missing (see tenacity#730)
+modules_stash="${appdir}/../modules_stash"
+rm -rf "${modules_stash}"
+mkdir -p "${modules_stash}"
+while IFS= read -r -d '' mod_dir; do
+   cp -a "${mod_dir}/." "${modules_stash}/"
+done < <(find "${appdir}" -type d -path '*/tenacity/modules' -print0) #hack to walk directories to find libs on different distros
+
 linuxdeploy --appdir "${appdir}" --plugin gtk # add all shared library dependencies
 rm -Rf "${appdir}/lib/tenacity"
 
@@ -122,6 +130,13 @@ if [ -f "/etc/debian_version" ]; then
    archDir=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
    rm -Rf "${appdir}/lib/${archDir}/tenacity"
 fi
+
+# restore modules to lib/modules/
+if [ -n "$(ls -A "${modules_stash}" 2>/dev/null)" ]; then
+   mkdir -p "${appdir}/lib/modules"
+   cp -a "${modules_stash}/." "${appdir}/lib/modules/"
+fi
+rm -rf "${modules_stash}"
 
 # Put the non-RUNPATH binaries back
 mv "${appdir}/../findlib" "${appdir}/bin/findlib"
