@@ -327,6 +327,11 @@ public:
 
    std::atomic<bool>   mForceFadeOut{ false };
 
+   // Set from the audio callback when it returns paComplete
+   // This fixes a race condition in WASAPI playback caused by
+   // wrongly assuming IsStreamActive() == false meant completion
+   std::atomic<bool>   mWASAPICallbackCompletionPending{ false };
+
    wxLongLong          mLastPlaybackTimeMillis;
 
    //! Not (yet) used; should perhaps be atomic when it is

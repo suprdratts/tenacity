@@ -1314,6 +1314,8 @@ void AudioIO::StopStream()
    auto cleanup = finally ( [this] {
       ClearRecordingException();
       mRecordingSchedule.mCrossfadeData.clear(); // free arrays
+      // consume completion to prevent stale play from being observed
+      mWASAPICallbackCompletionPending.store(false, std::memory_order_release);
    } );
 
    if( mPortStreamV19 == NULL )
@@ -1324,6 +1326,7 @@ void AudioIO::StopStream()
    // state. (Do we?)
    // This breaks WASAPI backend, as it sets the `running`
    // flag to `false` asynchronously.
+   // EM: This WASAPI bug likely cause of tenacity#685
    // Previously we have patched PortAudio and the patch
    // was breaking IsStreamStopped() == !IsStreamActive()
    // invariant.
@@ -1699,6 +1702,16 @@ void AudioIO::AudioThread(std::atomic<bool> &finish)
 
       gAudioIO->mAudioThreadSequenceBufferExchangeLoopActive
          .store(false, std::memory_order_relaxed);
+
+      // exchange() ensures we only dispatch one stop per completion.
+      if (gAudioIO->mWASAPICallbackCompletionPending.exchange(false, std::memory_order_acq_rel))
+      {
+         BasicUI::CallAfter([]{
+            auto io = AudioIO::Get();
+            if (io && io->IsBusy())
+               io->StopStream();
+         });
+      }
 
       std::this_thread::sleep_until( loopPassStart + interval );
    }
@@ -2723,10 +2736,10 @@ void AudioIoCallback::DrainInputBuffers(
    if( numCaptureChannels <= 0 )
       return;
 
-   // If there are no playback sequences, and we are recording, then the
-   // earlier checks for being past the end won't happen, so do it here.
+   // Failsafe check for if there are no playback sequences while recording
    if (mPlaybackSchedule.GetPolicy().Done(mPlaybackSchedule, 0)) {
       mCallbackReturn = paComplete;
+      mWASAPICallbackCompletionPending.store(true, std::memory_order_release);
    }
 
    // The error likely from a too-busy CPU falling behind real-time data
@@ -3173,6 +3186,7 @@ void AudioIoCallback::CallbackCheckCompletion(
    for( auto &ext : Extensions() )
       ext.SignalOtherCompletion();
    callbackReturn = paComplete;
+   mWASAPICallbackCompletionPending.store(true, std::memory_order_release);
 }
 
 auto AudioIoCallback::AudioIOExtIterator::operator *() const -> AudioIOExt &
