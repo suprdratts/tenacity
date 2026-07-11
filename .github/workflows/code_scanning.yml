@@ -1,0 +1,112 @@
+name: Code Scanning
+
+# Runs the static-analysis tools (cppcheck, flawfinder) and uploads
+# their SARIF output to Github
+
+on:
+  push:
+    branches:
+      - main
+      - tenacity-*
+      - ci-*
+      - fix-issue-*
+      - 1.3
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  cppcheck:
+    name: cppcheck
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Git repository
+      uses: actions/checkout@v7
+
+    - name: Run cppcheck static analysis
+      continue-on-error: true
+      id: run-analysis
+      run: |
+        WS='${{ github.workspace }}'
+        VER=2.21.0
+
+        # apt ships 2.13; SARIF output landed in 2.15. Build from source.
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends libpcre3-dev
+        curl -fsSL "https://github.com/danmar/cppcheck/archive/refs/tags/${VER}.tar.gz" | tar -xz
+        cmake -S "cppcheck-${VER}" -B cppcheck-build -DCMAKE_BUILD_TYPE=Release -DUSE_MATCHCOMPILER=ON
+        cmake --build cppcheck-build -j "$(nproc)"
+        sudo cmake --install cppcheck-build
+        rm -rf "cppcheck-${VER}" cppcheck-build
+        cppcheck --version
+
+        cppcheck \
+          --enable=warning,style,performance,portability \
+          --inline-suppr \
+          --suppress=missingIncludeSystem \
+          --suppress=unmatchedSuppression \
+          --suppress="*:$WS/vcpkg/*" \
+          --suppress="*:$WS/lib-src/*" \
+          --suppress="*:$WS/tests/*" \
+          --suppress="*:$WS/include/audacity/*" \
+          --output-format=sarif \
+          --output-file="$WS/cppcheck.sarif" \
+          --relative-paths="$WS" \
+          --error-exitcode=0 \
+          -j 4 \
+          -I "$WS/src" -I "$WS/libraries" \
+          "$WS/src" "$WS/libraries" "$WS/modules"
+
+        # cppcheck 2.21 SARIF quirks:
+        jq --arg ws "$WS/" '
+          walk(
+            if type == "object" then
+              with_entries(
+        # region fields written as 0 on whole-file findings (SARIF requires >= 1)
+                if (.key | test("^(startLine|startColumn|endLine|endColumn)$")) and .value < 1
+                then .value = 1
+                elif (.key | test("^(security-severity|securitySeverity)$")) and (.value | type == "number")
+                then .value = (.value | tostring)
+        # - uri fields may still contain absolute workspace paths
+                elif .key == "uri" and (.value | type == "string") and (.value | startswith($ws))
+                then .value = (.value | ltrimstr($ws))
+                else . end)
+            else . end)' "$WS/cppcheck.sarif" \
+            > "$WS/cppcheck.sarif.fixed"
+        mv "$WS/cppcheck.sarif.fixed" "$WS/cppcheck.sarif"
+
+    - name: Upload cppcheck SARIF to GitHub Code Scanning
+      if: steps.run-analysis.outcome == 'success'
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ github.workspace }}/cppcheck.sarif
+        category: cppcheck
+
+  flawfinder:
+    name: flawfinder
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Git repository
+      uses: actions/checkout@v7
+
+    - name: Run flawfinder security scan
+      continue-on-error: true
+      id: run-flawfinder
+      run: |
+        cd '${{ github.workspace }}'
+        pipx run flawfinder --sarif --falsepositive --minlevel=2 \
+          src libraries modules > flawfinder.sarif
+
+    - name: Upload flawfinder SARIF to GitHub Code Scanning
+      if: steps.run-flawfinder.outcome == 'success'
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ github.workspace }}/flawfinder.sarif
+        category: flawfinder
