@@ -10,9 +10,19 @@ on:
     branches:
       - main
       - tenacity-*
-      - ci-* # Allow CI test PRs
-      - fix-issue-* # Feature branches for issue fixes mirrored from Codeberg
+      - ci-*         # Allow CI test PRs
+      - fix-issue-*  # Feature branches for issue fixes mirrored from Codeberg
       - 1.3
+    # Add path detection for skipping builds when nothing substantive has been 
+    # changed; this will save us hundreds - thousands of minutes of actions
+    # time a month on pointless CI builds
+    paths:
+      - '**/*.{c,cc,cpp,cxx,h,hh,hpp,hxx,inc,inl,ipp,m,mm,po,pot}'
+      - '**/*.{cmake,cmake.in}'
+      - '**/{CMakeLists.txt,CMakePresets.json,vcpkg.json,vcpkg-configuration.json}'
+      - '{scripts/ci,win,mac,linux,nyquist,plug-ins,locale}/**'
+      - '.gitmodules'
+      - '.github/workflows/cmake_build.yml'
 
 defaults:
   run:
