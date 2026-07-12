@@ -72,7 +72,7 @@ jobs:
                 then .value = 1
                 elif (.key | test("^(security-severity|securitySeverity)$")) and (.value | type == "number")
                 then .value = (.value | tostring)
-        # - uri fields may still contain absolute workspace paths
+        # uri fields may still contain absolute workspace paths
                 elif .key == "uri" and (.value | type == "string") and (.value | startswith($ws))
                 then .value = (.value | ltrimstr($ws))
                 else . end)

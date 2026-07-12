@@ -15,6 +15,10 @@ on:
     pull_request_target:
         types: opened
 
+permissions:
+  issues: write
+  pull-requests: write
+
 jobs:
   point-to-upstream:
       runs-on: ubuntu-latest
