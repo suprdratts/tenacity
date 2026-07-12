@@ -1,19 +1,30 @@
-# For most projects, this workflow file will not need changing; you simply need
-# to commit it to your repository.
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-#
 name: "CodeQL Analysis"
 
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**/*.c'
+      - '**/*.cc'
+      - '**/*.cpp'
+      - '**/*.cxx'
+      - '**/*.h'
+      - '**/*.hh'
+      - '**/*.hpp'
+      - '**/*.hxx'
+      - '**/*.inc'
+      - '**/*.inl'
+      - '**/*.ipp'
+      - '**/*.m'
+      - '**/*.mm'
+      - '**/*.cmake'
+      - '**/*.cmake.in'
+      - '**/CMakeLists.txt'
+      - '**/CMakePresets.json'
+      - '**/vcpkg.json'
+      - '**/vcpkg-configuration.json'
+      - '.gitmodules'
+      - '.github/workflows/codeql-analysis.yml'
 
 permissions:
   contents: read
@@ -35,11 +46,7 @@ jobs:
       matrix:
         config:
         - name: Ubuntu
-          os: ubuntu-latest
-          arch: x86_64 # as reported by `arch` or `uname -m`
-          compiler_cache: ccache
-          compiler_cache_path: ~/.cache/ccache
-          language: 'cpp'  # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
+          language: cpp
 
     steps:
 
@@ -68,14 +75,19 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
-        languages: ${{ matrix.language }}
-        # If you wish to specify custom queries, you can do so here or in a config file.
-        # By default, queries listed here will override any specified in a config file.
-        # Prefix the list here with "+" to use these queries and those in the config file.
-        # queries: ./path/to/local/query, your-org/your-repo/queries@main
+        languages: ${{ matrix.config.language }}
+        config: |
+          paths-ignore:
+            - vcpkg
+            - lib-src
+            - tests
+          queries:
+            - uses: security-and-quality
 
     - name: Build
       run: cmake --build build --config ${{ env.CMAKE_BUILD_TYPE }} --verbose
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
+      with:
+        threads: 0
