@@ -60,6 +60,7 @@ jobs:
         -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/install
         -D CCACHE=OFF
         -D SCCACHE=OFF
+        -D PCH=OFF
         -S .
         -B build
 
