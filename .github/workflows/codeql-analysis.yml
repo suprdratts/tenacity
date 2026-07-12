@@ -78,9 +78,9 @@ jobs:
         languages: ${{ matrix.config.language }}
         config: |
           paths-ignore:
-            - vcpkg
-            - lib-src
-            - tests
+            - vcpkg/**
+            - lib-src/**
+            - tests/**
           queries:
             - uses: security-and-quality
 
