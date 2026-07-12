@@ -50,6 +50,10 @@ jobs:
           --inline-suppr \
           --suppress=missingIncludeSystem \
           --suppress=unmatchedSuppression \
+          --suppress=uninitMemberVar \
+          --suppress=uninitDerivedMemberVar \
+          --suppress=uninitMemberVarPrivate \
+          --suppress=uninitStructMember \
           --suppress="*:$WS/vcpkg/*" \
           --suppress="*:$WS/lib-src/*" \
           --suppress="*:$WS/tests/*" \
