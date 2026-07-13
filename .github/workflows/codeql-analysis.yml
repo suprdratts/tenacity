@@ -25,11 +25,11 @@ on:
       - '**/vcpkg-configuration.json'
       - '.gitmodules'
       - '.github/workflows/codeql-analysis.yml'
-    paths-ignore:
-      - 'lib-src/**'
-      - 'vcpkg/**'
-      - 'tests/**'
-      - '/include/audacity/**'
+      # Exclusions
+      - '!lib-src/**'
+      - '!vcpkg/**'
+      - '!tests/**'
+      - '!/include/audacity/**'
 
 permissions:
   contents: read
