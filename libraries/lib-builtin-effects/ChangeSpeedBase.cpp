@@ -137,7 +137,11 @@ bool ChangeSpeedBase::Process(EffectInstance&, EffectSettings&)
 
    mCurTrackNum = 0;
 
-   mFactor = 100.0 / (100.0 + m_PercentChange);
+   // percent ctrl is only 3 decimals so use the lengths directly
+   if (mToLength > 0.0 && mFromLength > 0.0)
+      mFactor = mToLength / mFromLength;
+   else
+      mFactor = 100.0 / (100.0 + m_PercentChange);
 
    outputs.Get().Any().VisitWhile(
       bGoodResult,
@@ -216,8 +220,8 @@ bool ChangeSpeedBase::Process(EffectInstance&, EffectSettings&)
    if (bGoodResult)
       outputs.Commit();
 
-   // Update selection.
-   mT1 = mT0 + (((mT1 - mT0) * 100.0) / (100.0 + m_PercentChange));
+   // update selection. same reason as above, don't go through the percent
+   mT1 = mT0 + (mT1 - mT0) * mFactor;
 
    return bGoodResult;
 }
