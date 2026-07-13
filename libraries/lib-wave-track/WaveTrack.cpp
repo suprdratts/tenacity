@@ -1808,8 +1808,11 @@ void WaveTrack::PasteWaveTrackAtSameTempo(
        if (!merge)
           track.SplitAt(t0);
        const auto clipAtT0 = track.GetClipAtTime(t0);
-       const auto t = clipAtT0 ? clipAtT0->GetPlayEndTime() : t0;
-       if (!track.IsEmpty(t, t + insertDuration))
+       // we need to snap to grid here to avoid floating point error
+       const auto t = track.SnapToSample(
+          clipAtT0 ? clipAtT0->GetPlayEndTime() : t0);
+       const auto tEnd = track.SnapToSample(t + insertDuration);
+       if (!track.IsEmpty(t, tEnd))
           throw notEnoughSpaceException;
     }
 

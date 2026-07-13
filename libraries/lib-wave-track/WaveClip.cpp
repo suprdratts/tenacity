@@ -1913,7 +1913,8 @@ sampleCount WaveClip::GetSequenceStartSample() const
 
 void WaveClip::ShiftBy(double delta) noexcept
 {
-   SetSequenceStartTime(GetSequenceStartTime() + delta);
+   // Snap to grid to get rid of floating point error
+   SetSequenceStartTime(SnapToTrackSample(GetSequenceStartTime() + delta));
    MarkChanged();
 }
 
@@ -1946,7 +1947,10 @@ bool WaveClip::IntersectsPlayRegion(double t0, double t1) const
    assert(t0 <= t1);
    // t1 is the open end of the interval, so it must be excluded from the closed
    // begin of the play region.
-   return t0 < GetPlayEndTime() && GetPlayStartTime() < t1;
+   // Change this to have half sample tolerance for clips touching;
+   // without tolerance adjustment floating point errors creep in
+   const double eps = 0.5 / mRate;
+   return t0 + eps < GetPlayEndTime() && GetPlayStartTime() + eps < t1;
 }
 
 bool WaveClip::CoversEntirePlayRegion(double t0, double t1) const
