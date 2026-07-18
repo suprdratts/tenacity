@@ -1,9 +1,30 @@
 ﻿;   Tenacity: A Digital Audio Editor
-;   Tenacity(R) is copyright (c) 1999-2022 Tenacity Team.
+;   Tenacity(R) is copyright (c) 1999-2026 Tenacity Team.
 ;   License: GPL v2.  See License.txt.
 ;
 ;   tenacity.iss
-#define AppExe        "@TENACITY_EXE_LOCATION@"
+;
+; Self-contained. No configure_file needed.
+;
+; iscc overrides:  /DBuildDir=<path>   /DTargetArch=x64|x86
+; Env vars:        WINDOWS_CERTIFICATE, WINDOWS_CERTIFICATE_PASSWORD, TENACITY_SIGN_SCRIPT
+
+; Find Tenacity.exe
+#ifndef BuildDir
+  #define TryBuildDir(str CandidateDir) (FileExists(CandidateDir + "\Tenacity.exe") ? CandidateDir : "")
+  #define BuildDir \
+    Local[0] = TryBuildDir(SourcePath),                                 \
+    Local[1] = (Local[0] != "" ? Local[0] : TryBuildDir(SourcePath + "Release")),        \
+    Local[2] = (Local[1] != "" ? Local[1] : TryBuildDir(SourcePath + "RelWithDebInfo")), \
+    Local[3] = (Local[2] != "" ? Local[2] : TryBuildDir(SourcePath + "Debug")),          \
+    Local[4] = (Local[3] != "" ? Local[3] : TryBuildDir(SourcePath + "MinSizeRel")),     \
+    Local[4]
+#endif
+#if BuildDir == ""
+  #error "Cannot locate Tenacity.exe. Pass iscc /DBuildDir=<path>."
+#endif
+
+#define AppExe        BuildDir + "\Tenacity.exe"
 #define AppMajor      ""
 #define AppMinor      ""
 #define AppRev        ""
@@ -14,16 +35,27 @@
 #define AppSupportURL "https://tenacityaudio.org/"
 #define AppAuthor     "Tenacity Team"
 
-[UninstallRun]
-; Uninstall prior installations.
-Filename: "{app}\unins*.*"; RunOnceId: "UninstallPrior"
+; Detect target arch by running detect_arch.ps1 against the exe's PE header.
+#ifndef TargetArch
+  #define ArchDetectScript SourcePath + "detect_arch.ps1"
+  #define ArchDetectFile   SourcePath + "arch.tmp"
+  #expr Exec("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File """ + ArchDetectScript +  """ -ExePath """ + AppExe + """ -OutFile """ + ArchDetectFile + """", SourcePath, 0, 1)
+  #if !FileExists(ArchDetectFile)
+    #error "Architecture auto-detection failed. Pass iscc /DTargetArch=x64|x86."
+  #endif
+  #define ArchDetectHandle FileOpen(ArchDetectFile)
+  #define TargetArch       Trim(FileRead(ArchDetectHandle))
+  #expr FileClose(ArchDetectHandle)
+#endif
 
 [Setup]
+; Stable AppId - do NOT change (breaks upgrades).
+AppId={{47C5FD10-83A8-4266-8CBE-B8052125D409}
 ; Icons
 SetupIconFile="Additional\tenacity.ico"
 UninstallDisplayIcon="{app}\tenacity.exe"
-WizardImageFile=".\tenacity_InnoWizardImage_100.bmp"
-WizardSmallImageFile=".\tenacity_InnoWizardSmallImage_100.bmp"
+WizardImageFile=".\tenacity_InnoWizardImage_100.bmp,.\tenacity_InnoWizardImage_125.bmp,.\tenacity_InnoWizardImage_150.bmp,.\tenacity_InnoWizardImage_200.bmp"
+WizardSmallImageFile=".\tenacity_InnoWizardSmallImage_100.bmp,.\tenacity_InnoWizardSmallImage_125.bmp,.\tenacity_InnoWizardSmallImage_150.bmp,.\tenacity_InnoWizardSmallImage_200.bmp"
 
 ; App/Version information
 AppName={#AppName}
@@ -70,10 +102,20 @@ DisableWelcomePage=no
 ; Display license information before install
 InfoBeforeFile=".\tenacity_InnoWizard_InfoBefore.rtf"
 
-; Directives using information passed by CMake
-@INSTALLER_X64_MODE@
-@SIGN_TOOL@
-OutputBaseFilename=@CPACK_PACKAGE_FILE_NAME@
+; Directives derived at compile time by ISPP
+#if TargetArch == "x64"
+ArchitecturesInstallIn64BitMode=x64
+#endif
+
+#if GetEnv("WINDOWS_CERTIFICATE") != ""
+  #define SignScript GetEnv("TENACITY_SIGN_SCRIPT")
+  #if SignScript == ""
+    #error "WINDOWS_CERTIFICATE is set but TENACITY_SIGN_SCRIPT is not."
+  #endif
+SignTool=byparam powershell -ExecutionPolicy Bypass -File $q{#SignScript}$q -File $f -CertFile $q{#GetEnv("WINDOWS_CERTIFICATE")}$q
+#endif
+
+OutputBaseFilename=tenacity-win-{#AppVersion}-{#TargetArch}
 
 ; Allow installation in non-administrative mode
 PrivilegesRequiredOverridesAllowed=dialog
@@ -95,62 +137,189 @@ Source: ".\FirstTimeModel.ini"; DestDir: "{app}"; DestName: "FirstTime.ini"; Per
 Source: "Additional\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 
-; Manual, which should be got from the manual wiki using ..\scripts\mw2html_tenacity\wiki2htm.bat
-@MANUAL@
+; Manual (staged via ..\scripts\mw2html_tenacity\wiki2htm.bat); auto-included if present.
+#if DirExists(SourcePath + "Package\help\manual")
+Source: "Package\help\manual\*"; DestDir: "{app}\help\manual\"; Flags: ignoreversion recursesubdirs
+#endif
 
 Source: "Additional\resources\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
 
 ; We include all dll files from the Tenacity root directory. This script is now executed as a part of CI build process,
-; so we controll which dll files are present in the directory.
-Source: "@TENACITY_BUILD_DIR@\*.dll"; DestDir: "{app}"; Flags: ignoreversion
+; so we control which dll files are present in the directory.
+Source: "{#BuildDir}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 
-Source: "@TENACITY_BUILD_DIR@\languages\*"; DestDir: "{app}\Languages\"; Flags: ignoreversion recursesubdirs
+Source: "{#BuildDir}\languages\*"; DestDir: "{app}\Languages\"; Flags: ignoreversion recursesubdirs
 ; We don't ship all modules, so the next line is commented out
-; Source: "@TENACITY_BUILD_DIR@\modules\*"; DestDir: "{app}\Modules\"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
-Source: "@TENACITY_BUILD_DIR@\nyquist\*"; DestDir: "{app}\Nyquist\"; Flags: ignoreversion recursesubdirs
-Source: "@TENACITY_BUILD_DIR@\plug-ins\*"; DestDir: "{app}\Plug-Ins\"; Flags: ignoreversion
-Source: "@TENACITY_BUILD_DIR@\modules\*"; DestDir: "{app}\modules\"; Flags: ignoreversion recursesubdirs
-
-; Include scaled WizardImages
-Source: "tenacity_InnoWizardImage_*.bmp"; Excludes: "*100.bmp"; Flags: dontcopy
-Source: "tenacity_InnoWizardSmallImage_*.bmp"; Excludes: "*100.bmp"; Flags: dontcopy
-
-; load images based on monitor scale
-; by Martin Prikryl (CC BY-SA 3.0)
-; https://stackoverflow.com/a/31003152/13384771
+; Source: "{#BuildDir}\modules\*"; DestDir: "{app}\Modules\"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
+Source: "{#BuildDir}\nyquist\*"; DestDir: "{app}\Nyquist\"; Flags: ignoreversion recursesubdirs
+Source: "{#BuildDir}\plug-ins\*"; DestDir: "{app}\Plug-Ins\"; Flags: ignoreversion
+Source: "{#BuildDir}\modules\*"; DestDir: "{app}\modules\"; Flags: ignoreversion recursesubdirs
 
 [Code]
 
-function GetScalingFactor: Integer;
+{ 
+  Silently uninstall any prior Tenacity that isn't our AppId.
+  Fixes the side-by-side installs left by pre-AppId builds. 
+}
+
+const OurAppId = '{47C5FD10-83A8-4266-8CBE-B8052125D409}_is1';
+
+function LooksLikeTenacity(const RegistryText: String): Boolean;
 begin
-  if WizardForm.Font.PixelsPerInch >= 192 then Result := 200
-    else
-  if WizardForm.Font.PixelsPerInch >= 144 then Result := 150
-    else
-  if WizardForm.Font.PixelsPerInch >= 120 then Result := 125
-    else Result := 100;
+  Result := (Pos('tenacity', Lowercase(RegistryText)) > 0);
 end;
 
-procedure LoadEmbededScaledBitmap(Image: TBitmapImage; NameBase: string);
+procedure RunPriorUninstaller(const UninstallCommand: String);
 var
-  Name: String;
-  FileName: String;
+  ExitCode: Integer;
+  ExePath, ExeParams: String;
+  SplitPos: Integer;
 begin
-  Name := Format('%s_%d.bmp', [NameBase, GetScalingFactor]);
-  ExtractTemporaryFile(Name);
-  FileName := ExpandConstant('{tmp}\' + Name);
-  Image.Bitmap.LoadFromFile(FileName);
-  DeleteFile(FileName);
+  if UninstallCommand = '' then Exit;
+  { Split "path" [args] and append silent flags. }
+  if (Length(UninstallCommand) > 0) and (UninstallCommand[1] = '"') then
+  begin
+    SplitPos := Pos('"', Copy(UninstallCommand, 2, Length(UninstallCommand)));
+    if SplitPos > 0 then
+    begin
+      ExePath   := Copy(UninstallCommand, 2, SplitPos - 1);
+      ExeParams := Trim(Copy(UninstallCommand, SplitPos + 2, Length(UninstallCommand)));
+    end
+    else
+    begin
+      ExePath   := UninstallCommand;
+      ExeParams := '';
+    end;
+  end
+  else
+  begin
+    SplitPos := Pos(' ', UninstallCommand);
+    if SplitPos > 0 then
+    begin
+      ExePath   := Copy(UninstallCommand, 1, SplitPos - 1);
+      ExeParams := Trim(Copy(UninstallCommand, SplitPos + 1, Length(UninstallCommand)));
+    end
+    else
+    begin
+      ExePath   := UninstallCommand;
+      ExeParams := '';
+    end;
+  end;
+
+  if not FileExists(ExePath) then Exit;
+
+  if Pos('/SILENT', Uppercase(ExeParams)) = 0 then
+  begin
+    if ExeParams <> '' then ExeParams := ExeParams + ' ';
+    ExeParams := ExeParams + '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART';
+  end;
+
+  Exec(ExePath, ExeParams, '', SW_HIDE, ewWaitUntilTerminated, ExitCode);
 end;
 
-procedure InitializeWizard;
+function IsTenacityUninstallSubkey(RootKey: Integer; const SubkeyPath: String): Boolean;
+var
+  DisplayName, Publisher: String;
 begin
-  { If using larger scaling, load the correct size of images }
-  if GetScalingFactor > 100 then
+  DisplayName := '';
+  Publisher   := '';
+  RegQueryStringValue(RootKey, SubkeyPath, 'DisplayName', DisplayName);
+  RegQueryStringValue(RootKey, SubkeyPath, 'Publisher', Publisher);
+  Result := LooksLikeTenacity(DisplayName) or LooksLikeTenacity(Publisher);
+end;
+
+function HasPriorTenacityInHive(RootKey: Integer): Boolean;
+var
+  UninstallRootKey: String;
+  UninstallSubkeys: TArrayOfString;
+  I: Integer;
+begin
+  Result := False;
+  UninstallRootKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall';
+  if not RegGetSubkeyNames(RootKey, UninstallRootKey, UninstallSubkeys) then Exit;
+  for I := 0 to GetArrayLength(UninstallSubkeys) - 1 do
+    if (CompareText(UninstallSubkeys[I], OurAppId) <> 0) and
+       IsTenacityUninstallSubkey(RootKey, UninstallRootKey + '\' + UninstallSubkeys[I]) then
+    begin
+      Result := True;
+      Exit;
+    end;
+end;
+
+procedure UninstallPriorTenacityInHive(RootKey: Integer);
+var
+  UninstallRootKey: String;
+  UninstallSubkeys: TArrayOfString;
+  I: Integer;
+  SubkeyPath, UninstallCommand: String;
+begin
+  UninstallRootKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall';
+  if not RegGetSubkeyNames(RootKey, UninstallRootKey, UninstallSubkeys) then Exit;
+
+  for I := 0 to GetArrayLength(UninstallSubkeys) - 1 do
   begin
-    LoadEmbededScaledBitmap(WizardForm.WizardBitmapImage, 'tenacity_InnoWizardImage');
-    LoadEmbededScaledBitmap(WizardForm.WizardBitmapImage2, 'tenacity_InnoWizardImage');
-    LoadEmbededScaledBitmap(WizardForm.WizardSmallBitmapImage, 'tenacity_InnoWizardSmallImage');
+    if CompareText(UninstallSubkeys[I], OurAppId) = 0 then Continue;
+    SubkeyPath := UninstallRootKey + '\' + UninstallSubkeys[I];
+    if not IsTenacityUninstallSubkey(RootKey, SubkeyPath) then Continue;
+
+    UninstallCommand := '';
+    if not RegQueryStringValue(RootKey, SubkeyPath, 'QuietUninstallString', UninstallCommand) then
+      RegQueryStringValue(RootKey, SubkeyPath, 'UninstallString', UninstallCommand);
+    RunPriorUninstaller(UninstallCommand);
+  end;
+end;
+
+function HasSystemWidePriorInstall: Boolean;
+begin
+  Result := HasPriorTenacityInHive(HKEY_LOCAL_MACHINE_64) or
+            HasPriorTenacityInHive(HKEY_LOCAL_MACHINE_32) or
+            HasPriorTenacityInHive(HKEY_LOCAL_MACHINE);
+end;
+
+function RelaunchElevated: Boolean;
+var
+  ShellExecError: Integer;
+begin
+  Result := ShellExec('runas', ExpandConstant('{srcexe}'), '', '', SW_SHOW, ewNoWait, ShellExecError);
+end;
+
+function InitializeSetup(): Boolean;
+var
+  UserChoice: Integer;
+begin
+  Result := True;
+
+  { HKLM cleanup needs admin. If a system-wide prior install exists and we're not elevated, offer to relaunch as administrator. }
+  if (not IsAdminInstallMode) and HasSystemWidePriorInstall then
+  begin
+    UserChoice := MsgBox(
+      'A previous system-wide installation of Tenacity was found.' + #13#10 +
+      'Removing it requires administrator privileges.' + #13#10#13#10 +
+      'Restart this installer as administrator now?' + #13#10#13#10 +
+      'Choose No to continue anyway; the old entry may remain in ' +
+      'Add/Remove Programs.',
+      mbConfirmation, MB_YESNOCANCEL);
+
+    case UserChoice of
+      IDYES:
+        begin
+          if RelaunchElevated then
+            Result := False
+          else
+            MsgBox('Failed to relaunch as administrator. Continuing without ' +
+                   'removing the previous system-wide installation.',
+                   mbInformation, MB_OK);
+        end;
+      IDCANCEL: Result := False;
+    end;
+  end;
+
+  if Result then
+  begin
+    UninstallPriorTenacityInHive(HKEY_LOCAL_MACHINE);
+    UninstallPriorTenacityInHive(HKEY_LOCAL_MACHINE_64);
+    UninstallPriorTenacityInHive(HKEY_LOCAL_MACHINE_32);
+    UninstallPriorTenacityInHive(HKEY_CURRENT_USER);
   end;
 end;
 
@@ -183,9 +352,6 @@ Type: files; Name: "{app}\msvcr130.dll"
 
 ; Get rid of previous help folder.
 Type: filesandordirs; Name: "{app}\help"
-
-;Get rid of previous uninstall item
-Type: files; Name: "{app}\unins*.*"
 
 ; Get rid of no longer used test.lsp.
 Type: files; Name: "{app}\Nyquist\test.lsp"
@@ -249,22 +415,13 @@ Filename: "{app}\tenacity.exe"; Description: "{cm:LaunchProgram,Tenacity}"; Flag
 ; retries up to three times, and non-zero exits on failure so the Inno Setup preprocessor sees the error
 #define DownloadCmd(BASE, URL, DEST) \
   "-NoProfile -ExecutionPolicy Bypass -Command """ + \
-  "[Net.ServicePointManager]::SecurityProtocol = " + \
-  "[Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; " + \
-  "$src = '" + BASE + URL + "'; " + \
-  "$dst = '" + DEST + "'; " + \
-  "Write-Host ('Downloading: ' + $src); " + \
+  "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13; " + \
+  "$src = '" + BASE + URL + "'; $dst = '" + DEST + "'; Write-Host ('Downloading: ' + $src); " + \
   "for ($i = 1; $i -le 3; $i++) { " + \
-  "  try { (New-Object System.Net.WebClient).DownloadFile($src, $dst); " + \
-  "        if ((Get-Item $dst).Length -gt 0) { exit 0 } " + \
-  "        else { throw 'empty file' } " + \
-  "  } catch { " + \
-  "    Write-Host ('Attempt ' + $i + ' failed: ' + $_.Exception.Message); " + \
-  "    if ($i -lt 3) { Start-Sleep -Seconds ($i * 2) } " + \
-  "  } " + \
+  "  try { (New-Object System.Net.WebClient).DownloadFile($src, $dst); if ((Get-Item $dst).Length -gt 0) { exit 0 } else { throw 'empty file' } } " + \
+  "  catch { Write-Host ('Attempt ' + $i + ' failed: ' + $_.Exception.Message); if ($i -lt 3) { Start-Sleep -Seconds ($i * 2) } } " + \
   "}; " + \
-  "Write-Error ('Failed to download ' + $src + ' after 3 attempts'); " + \
-  "exit 1" + \
+  "Write-Error ('Failed to download ' + $src + ' after 3 attempts'); exit 1" + \
   """"
 
 ; This macro will use the Windows PowerShell to download the given translation into

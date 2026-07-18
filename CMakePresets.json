@@ -1,98 +1,180 @@
 {
-  "version": 6,
-  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
-  "configurePresets": [
-    {
-      "name": "x64-msvc-debug-ninja",
-      "displayName": "x64-MSVC-Debug (Ninja)",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "installDir": "${sourceDir}/install/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      },
-      "architecture": { "value": "x64", "strategy": "external" },
-      "toolset":      { "value": "host=x64", "strategy": "external" },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      }
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
     },
-    {
-      "name": "x64-msvc-debug-msbuild",
-      "displayName": "x64-MSVC-Debug (MSBuild)",
-      "generator": "Visual Studio 18 2026",
-      "architecture": "x64",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "installDir": "${sourceDir}/install/${presetName}",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      }
-    },
-    {
-      "name": "x64-clang-debug-makefiles",
-      "displayName": "x64-Clang-Debug (Unix Makefiles)",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "installDir": "${sourceDir}/install/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "vendor": {
-        "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "hostOS": [ "Linux" ]
+    "configurePresets": [
+        {
+            "name": "x64-msvc-debug-ninja",
+            "displayName": "x64-MSVC-Debug (Ninja)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         },
-        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
-          "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
-        }
-      }
-    },
-    {
-      "name": "x64-clang-debug-ninja",
-      "displayName": "x64-Clang-Debug (Ninja)",
-      "generator": "Ninja",
-      "binaryDir": "${sourceDir}/build/${presetName}",
-      "installDir": "${sourceDir}/install/${presetName}",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "vendor": {
-        "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "hostOS": [ "Linux" ]
+        {
+            "name": "x64-msvc-debug-msbuild",
+            "displayName": "x64-MSVC-Debug (MSBuild)",
+            "generator": "Visual Studio 18 2026",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         },
-        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
-          "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+        {
+            "name": "x64-clang-debug-makefiles",
+            "displayName": "x64-Clang-Debug (Unix Makefiles)",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": [
+                        "Linux"
+                    ]
+                },
+                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+                }
+            }
+        },
+        {
+            "name": "x64-clang-debug-ninja",
+            "displayName": "x64-Clang-Debug (Ninja)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "vendor": {
+                "microsoft.com/VisualStudioSettings/CMake/1.0": {
+                    "hostOS": [
+                        "Linux"
+                    ]
+                },
+                "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+                    "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+                }
+            }
+        },
+        {
+            "name": "x64-msvc-release-ninja",
+            "displayName": "x64-MSVC-Release (Ninja)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "installDir": "${sourceDir}/install/${presetName}",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolset": {
+                "value": "host=x64",
+                "strategy": "external"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
         }
-      }
-    }
-  ],
-  "buildPresets": [
-    { "name": "x64-msvc-debug-ninja",     "configurePreset": "x64-msvc-debug-ninja",     "configuration": "Debug" },
-    { "name": "x64-msvc-debug-msbuild",   "configurePreset": "x64-msvc-debug-msbuild",   "configuration": "Debug" },
-    { "name": "x64-clang-debug-makefiles","configurePreset": "x64-clang-debug-makefiles","configuration": "Debug" },
-    { "name": "x64-clang-debug-ninja",    "configurePreset": "x64-clang-debug-ninja",    "configuration": "Debug" }
-  ],
-  "testPresets": [
-    { "name": "x64-msvc-debug-ninja",     "configurePreset": "x64-msvc-debug-ninja",     "configuration": "Debug" },
-    { "name": "x64-msvc-debug-msbuild",   "configurePreset": "x64-msvc-debug-msbuild",   "configuration": "Debug" },
-    { "name": "x64-clang-debug-makefiles","configurePreset": "x64-clang-debug-makefiles","configuration": "Debug" },
-    { "name": "x64-clang-debug-ninja",    "configurePreset": "x64-clang-debug-ninja",    "configuration": "Debug" }
-  ]
+    ],
+    "buildPresets": [
+        {
+            "name": "x64-msvc-debug-ninja",
+            "configurePreset": "x64-msvc-debug-ninja",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-msvc-debug-msbuild",
+            "configurePreset": "x64-msvc-debug-msbuild",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-clang-debug-makefiles",
+            "configurePreset": "x64-clang-debug-makefiles",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-clang-debug-ninja",
+            "configurePreset": "x64-clang-debug-ninja",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-msvc-release-ninja",
+            "configurePreset": "x64-msvc-release-ninja",
+            "configuration": "Release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "x64-msvc-debug-ninja",
+            "configurePreset": "x64-msvc-debug-ninja",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-msvc-debug-msbuild",
+            "configurePreset": "x64-msvc-debug-msbuild",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-clang-debug-makefiles",
+            "configurePreset": "x64-clang-debug-makefiles",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-clang-debug-ninja",
+            "configurePreset": "x64-clang-debug-ninja",
+            "configuration": "Debug"
+        },
+        {
+            "name": "x64-msvc-release-ninja",
+            "configurePreset": "x64-msvc-release-ninja",
+            "configuration": "Release"
+        }
+    ]
 }

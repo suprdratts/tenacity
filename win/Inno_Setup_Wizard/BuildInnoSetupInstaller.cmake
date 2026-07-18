@@ -35,49 +35,38 @@ endif()
 
 set(OUTPUT_DIR "${CPACK_TEMPORARY_DIRECTORY}")
 
-# Resolve any variables required by the setup script
+# The .iss discovers exe, version, arch, and sign config on its own.
+# Point it at the config subdir; the filename mirrors the .iss formula.
+set(TENACITY_BUILD_DIR "${OUTPUT_DIR}/${CPACK_TENACITY_INNO_SETUP_BUILD_CONFIG}")
+
 if( CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|ARM64" )
-    set( INSTALLER_SUFFIX "x64" )
-    set( INSTALLER_X64_MODE "ArchitecturesInstallIn64BitMode=x64")
+    set( _INSTALLER_ARCH "x64" )
 else()
-    set( INSTALLER_SUFFIX "x86" )
-    set( INSTALLER_X64_MODE "")
+    set( _INSTALLER_ARCH "x86" )
 endif()
+# .iss uses the exe's PE FILEVERSION (X.Y.Z); strip any pre-release suffix here.
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" _INSTALLER_VERSION "${CPACK_PACKAGE_VERSION}")
+set(CPACK_EXTERNAL_BUILT_PACKAGES
+    "${OUTPUT_DIR}/Output/tenacity-win-${_INSTALLER_VERSION}-${_INSTALLER_ARCH}.exe")
 
-# Set the packages we're going to build
-set(CPACK_EXTERNAL_BUILT_PACKAGES "${OUTPUT_DIR}/Output/${CPACK_PACKAGE_FILE_NAME}.exe")
-
+# Signing: opt-in via env vars read by the .iss.
 if( CPACK_TENACITY_INNO_SETUP_SIGN )
-    set( SIGN_TOOL "SignTool=byparam powershell -ExecutionPolicy Bypass -File \$q${CPACK_TENACITY_SOURCE_DIR}/scripts/build/windows/PfxSign.ps1\$q -File $f")
-
     if( CPACK_TENACITY_INNO_SETUP_CERTIFICATE )
-        string(APPEND SIGN_TOOL " -CertFile \$q${CPACK_TENACITY_INNO_SETUP_CERTIFICATE}\$q")
+        set( ENV{WINDOWS_CERTIFICATE} "${CPACK_TENACITY_INNO_SETUP_CERTIFICATE}")
     endif()
 
     if( CPACK_TENACITY_INNO_SETUP_CERTIFICATE_PASSWORD )
         message("Setting env:WINDOWS_CERTIFICATE_PASSWORD...")
-        set( ENV{WINDOWS_CERTIFICATE_PASSWORD} "${CPACK_TENACITY_INNO_SETUP_CERTIFICATE_PASSWORD}")
+        set( ENV{WINDOWS_CERTIFICATE_PASSWORD}
+             "${CPACK_TENACITY_INNO_SETUP_CERTIFICATE_PASSWORD}")
     endif()
-else()
-    set( SIGN_TOOL )
+
+    set( ENV{TENACITY_SIGN_SCRIPT}
+         "${CPACK_TENACITY_SOURCE_DIR}/scripts/build/windows/PfxSign.ps1")
 endif()
 
-if( EMBED_MANUAL )
-    set ( MANUAL [[Source: "Package\help\manual\*"; DestDir: "{app}\help\manual\"; Flags: ignoreversion recursesubdirs]])
-else()
-    set( MANUAL )
-endif()
-
-# Prepare the output directory
-# This is all set in the staging directory, but it's the same files from the
-# normal build directory, so it shouldn't matter.
-set(TENACITY_BUILD_DIR "${OUTPUT_DIR}/${CPACK_TENACITY_INNO_SETUP_BUILD_CONFIG}")
-set(TENACITY_EXE_LOCATION "${TENACITY_BUILD_DIR}/Tenacity.exe")
-
+# Stage the .iss and auxiliary files next to the build tree
 file(COPY "${CPACK_TENACITY_SOURCE_DIR}/win/Inno_Setup_Wizard/" DESTINATION "${OUTPUT_DIR}")
-configure_file("${OUTPUT_DIR}/tenacity.iss.in" "${OUTPUT_DIR}/tenacity.iss")
-
-# Copy additional files
 
 file(COPY "${CPACK_TENACITY_SOURCE_DIR}/resources" DESTINATION "${OUTPUT_DIR}/Additional")
 
@@ -90,7 +79,11 @@ file(COPY
 
 execute_process(
     COMMAND
-        ${CPACK_TENACITY_INNO_SETUP_COMPILER} /Sbyparam=$p "tenacity.iss" /Qp
+        ${CPACK_TENACITY_INNO_SETUP_COMPILER}
+            /Sbyparam=$p
+            "/DBuildDir=${TENACITY_BUILD_DIR}"
+            "/DTargetArch=${_INSTALLER_ARCH}"
+            "tenacity.iss" /Qp
     WORKING_DIRECTORY
         ${OUTPUT_DIR}
     # When we upgrade to CMake min version 3.19 we can use this
