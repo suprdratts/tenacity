@@ -220,7 +220,7 @@ jobs:
           ${{ matrix.config.os }}-${{ matrix.config.arch }}-
 
     - name: "[Windows] Setup Developer Command Prompt"
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: TheMrMilchmann/setup-msvc-dev@v4
       if: runner.os == 'Windows'
       with:
         arch: ${{matrix.config.dev_cmd_arch}}
