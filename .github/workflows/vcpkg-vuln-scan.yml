@@ -46,6 +46,7 @@ jobs:
           project-root: .
           transitive: true
           sarif: vcpkg-vuln.sarif
+          suppressions: .github/vcpkg-suppressions.json
           # Don't fail the workflow on findings; Code Scanning surfaces them
           # and we don't want CVE churn to block unrelated PRs.
           fail-on-findings: false

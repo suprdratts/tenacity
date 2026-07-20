@@ -1,0 +1,161 @@
+{
+  "_comment": "Suppressions for vcpkg-vuln-scan findings. Each entry needs a reason so future maintainers know why it's here. Reviewed against upstream fix versions on 2026-07-20.",
+  "suppressions": [
+    {
+      "id": "CVE-2015-7313",
+      "reason": "libtiff before 4.0.7. We ship 4.7.1, well past."
+    },
+    {
+      "id": "CVE-2016-3619",
+      "reason": "libtiff <= 4.0.6 in bmp2tiff. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2016-3620",
+      "reason": "libtiff <= 4.0.6 in bmp2tiff. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2016-3621",
+      "reason": "libtiff <= 4.0.6 in bmp2tiff. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2016-3625",
+      "reason": "libtiff <= 4.0.6 in tiff2bw. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2016-3631",
+      "reason": "libtiff <= 4.0.6 in thumbnail tool. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2016-3633",
+      "reason": "libtiff <= 4.0.6 in thumbnail tool. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2016-3634",
+      "reason": "libtiff <= 4.0.6 in thumbnail tool. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2017-16232",
+      "reason": "libtiff 4.0.8. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2017-17942",
+      "reason": "libtiff 4.0.9 in tif_packbits.c. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2017-17973",
+      "reason": "libtiff 4.0.8 in tiff2pdf. We ship 4.7.1. Third-party report of unreproducible."
+    },
+    {
+      "id": "CVE-2018-10126",
+      "reason": "ijg-libjpeg (not libjpeg-turbo) before 9d in tiff2pdf. Different codebase from our libjpeg-turbo 3.1.x."
+    },
+    {
+      "id": "CVE-2018-10801",
+      "reason": "libtiff 3.8.2. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2022-1210",
+      "reason": "libtiff 4.3.0 tiff2ps. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2023-3576",
+      "reason": "libtiff <= 4.5.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2023-3618",
+      "reason": "libtiff <= 4.5.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2023-6228",
+      "reason": "libtiff <= 4.5.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2023-6277",
+      "reason": "libtiff <= 4.5.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2023-40745",
+      "reason": "libtiff <= 4.5.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2023-41175",
+      "reason": "libtiff <= 4.5.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2024-13978",
+      "reason": "libtiff <= 4.6.x. We ship 4.7.1."
+    },
+    {
+      "id": "CVE-2017-7475",
+      "reason": "cairo 1.15.x era. We ship 1.18.4."
+    },
+    {
+      "id": "CVE-2018-18064",
+      "reason": "cairo 1.15.x era. We ship 1.18.4."
+    },
+    {
+      "id": "CVE-2019-6129",
+      "reason": "libpng 1.6.36. We ship 1.6.58."
+    },
+    {
+      "id": "CVE-2019-17371",
+      "reason": "gif2png utility, not the libpng library itself."
+    },
+    {
+      "id": "CVE-2026-3713",
+      "reason": "pnm2png contrib utility, not the libpng library API."
+    },
+    {
+      "id": "CVE-2017-8786",
+      "reason": "pcre2 10.23 in pcre2test tool. We ship 10.47."
+    },
+    {
+      "id": "CVE-2019-20454",
+      "reason": "PCRE before 10.34. We ship pcre2 10.47."
+    },
+    {
+      "id": "CVE-2017-5969",
+      "reason": "libxml2 2.9.4 in recover mode. We ship 2.15.3."
+    },
+    {
+      "id": "CVE-2026-11979",
+      "reason": "xmlcatalog CLI utility (--shell mode). We use the libxml2 library API, not the shipped CLI."
+    },
+    {
+      "id": "CVE-2015-9019",
+      "reason": "libxslt 1.1.29 EXSLT math.random seed. We ship 1.1.45."
+    },
+    {
+      "id": "CVE-2019-19603",
+      "reason": "sqlite3 3.30.1. We ship 3.53.2."
+    },
+    {
+      "id": "CVE-2019-19645",
+      "reason": "sqlite3 through 3.30.1. We ship 3.53.2."
+    },
+    {
+      "id": "CVE-2021-45346",
+      "reason": "sqlite3 3.35.1 / 3.37.0. We ship 3.53.2."
+    },
+    {
+      "id": "CVE-2025-70873",
+      "reason": "sqlite3 zipfile extension, 3.51.1 and earlier. We ship 3.53.2."
+    },
+    {
+      "id": "CVE-2018-14044",
+      "reason": "soundtouch 2.0. We ship 2.4.0."
+    },
+    {
+      "id": "CVE-2018-14045",
+      "reason": "soundtouch 2.0. We ship 2.4.0."
+    },
+    {
+      "id": "CVE-2018-13419",
+      "reason": "libsndfile 1.0.28. We ship 1.2.2. Maintainer notes issue was unreproducible."
+    },
+    {
+      "id": "CVE-2025-66382",
+      "reason": "libexpat through 2.7.3 (perf DoS). We ship 2.8.1 which is past."
+    }
+  ]
+}
