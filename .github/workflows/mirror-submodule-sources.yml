@@ -12,7 +12,7 @@ name: Mirror submodule sources to GitHub
 
 on:
   schedule:
-    - cron: '17 */6 * * *'   # every six hours, off the hour
+    - cron: '*/5 * * * *'   # every 5 minutes (GitHub cron minimum)
   workflow_dispatch:
 
 concurrency:
@@ -43,15 +43,26 @@ jobs:
             exit 1
           fi
 
+          src_url='${{ matrix.source }}'
+          dst_url="https://github.com/${{ matrix.target }}.git"
+
+          # Cheap check: if heads and tags already match, no work to do.
+          src_refs=$(git ls-remote "$src_url" 'refs/heads/*' 'refs/tags/*' | sort)
+          dst_refs=$(git ls-remote "$dst_url" 'refs/heads/*' 'refs/tags/*' | sort)
+          if [ "$src_refs" = "$dst_refs" ]; then
+            echo "Already in sync; nothing to push."
+            exit 0
+          fi
+
           workdir=$(mktemp -d)
           trap 'rm -rf "$workdir"' EXIT
 
-          echo "Cloning ${{ matrix.source }} ..."
-          git clone --mirror "${{ matrix.source }}" "$workdir/repo.git"
+          echo "Cloning $src_url ..."
+          git clone --mirror "$src_url" "$workdir/repo.git"
 
-          echo "Pushing to https://github.com/${{ matrix.target }}.git ..."
+          echo "Pushing to $dst_url ..."
           git -C "$workdir/repo.git" push --force --prune \
-            "https://x-access-token:${MIRROR_TOKEN}@github.com/${{ matrix.target }}.git" \
+            "https://x-access-token:${MIRROR_TOKEN}@${dst_url#https://}" \
             'refs/heads/*:refs/heads/*' \
             'refs/tags/*:refs/tags/*'
 
