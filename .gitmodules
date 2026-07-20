@@ -1,10 +1,10 @@
 [submodule "vcpkg"]
 	path = vcpkg
-	url = https://codeberg.org/tenacityteam/vcpkg.git
+	url = https://github.com/tenacityteam/vcpkg.git
 	branch = tenacity
 [submodule "lib-src/libnyquist"]
 	path = lib-src/libnyquist
-	url = https://codeberg.org/tenacityteam/libnyquist
+	url = https://github.com/tenacityteam/libnyquist.git
 [submodule "lib-src/pffft"]
 	path = lib-src/pffft
 	url = https://github.com/marton78/pffft

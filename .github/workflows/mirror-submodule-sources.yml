@@ -1,0 +1,58 @@
+name: Mirror submodule sources to GitHub
+
+# Keeps the GitHub mirrors of our submodule sources in sync with the Codeberg
+# originals. Runs on a schedule and on demand.
+#
+# Requires a repo secret named MIRROR_TOKEN: a Personal Access Token (or
+# fine-grained token) with contents:write on:
+#   - github.com/tenacityteam/vcpkg
+#   - github.com/tenacityteam/libnyquist
+# The default GITHUB_TOKEN only has access to this repo, which is why a
+# separate token is needed.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'   # every six hours, off the hour
+  workflow_dispatch:
+
+concurrency:
+  group: mirror-submodule-sources
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: vcpkg
+            source: https://codeberg.org/tenacityteam/vcpkg.git
+            target: tenacityteam/vcpkg
+          - name: libnyquist
+            source: https://codeberg.org/tenacityteam/libnyquist.git
+            target: tenacityteam/libnyquist
+    steps:
+      - name: Mirror ${{ matrix.name }}
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MIRROR_TOKEN" ]; then
+            echo "MIRROR_TOKEN secret is not set; cannot push to GitHub mirror." >&2
+            exit 1
+          fi
+
+          workdir=$(mktemp -d)
+          trap 'rm -rf "$workdir"' EXIT
+
+          echo "Cloning ${{ matrix.source }} ..."
+          git clone --mirror "${{ matrix.source }}" "$workdir/repo.git"
+
+          echo "Pushing to https://github.com/${{ matrix.target }}.git ..."
+          git -C "$workdir/repo.git" push --force --prune \
+            "https://x-access-token:${MIRROR_TOKEN}@github.com/${{ matrix.target }}.git" \
+            'refs/heads/*:refs/heads/*' \
+            'refs/tags/*:refs/tags/*'
+
+          echo "Done."
