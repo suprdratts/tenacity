@@ -37,7 +37,7 @@ jobs:
           submodules: false
 
       - name: Run OSV-Scanner
-        uses: google/osv-scanner-action/osv-scanner-action@v2
+        uses: google/osv-scanner-action/osv-scanner-action@v2.3.8
         continue-on-error: true   # keep going so SARIF upload always runs
         with:
           scan-args: |-
