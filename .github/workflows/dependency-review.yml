@@ -19,11 +19,13 @@ permissions:
 jobs:
   dependency-review:
     runs-on: ubuntu-latest
+    # Skip the "before" commit is all-zeros case — first push to a new branch has no prior SHA to diff against.
+    if: github.event.before != '0000000000000000000000000000000000000000'
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v7
       - name: 'Dependency Review'
         uses: actions/dependency-review-action@v4
         with:
-          base-ref: ${{github.ref}}
-          head-ref: ${{github.ref}}
+          base-ref: ${{ github.event.before }}
+          head-ref: ${{ github.event.after }}
