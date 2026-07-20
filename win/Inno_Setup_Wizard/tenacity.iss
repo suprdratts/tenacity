@@ -4,8 +4,6 @@
 ;
 ;   tenacity.iss
 ;
-; Self-contained. No configure_file needed.
-;
 ; iscc overrides:  /DBuildDir=<path>   /DTargetArch=x64|x86
 ; Env vars:        WINDOWS_CERTIFICATE, WINDOWS_CERTIFICATE_PASSWORD, TENACITY_SIGN_SCRIPT
 
@@ -24,6 +22,8 @@
   #error "Cannot locate Tenacity.exe. Pass iscc /DBuildDir=<path>."
 #endif
 
+; Stable AppId GUID - do NOT change (breaks upgrades). Referenced in [Setup] and [Code].
+#define AppGuid       "{47C5FD10-83A8-4266-8CBE-B8052125D409}"
 #define AppExe        BuildDir + "\Tenacity.exe"
 #define AppMajor      ""
 #define AppMinor      ""
@@ -49,8 +49,7 @@
 #endif
 
 [Setup]
-; Stable AppId - do NOT change (breaks upgrades).
-AppId={{47C5FD10-83A8-4266-8CBE-B8052125D409}
+AppId={{#AppGuid}
 ; Icons
 SetupIconFile="Additional\tenacity.ico"
 UninstallDisplayIcon="{app}\tenacity.exe"
@@ -127,8 +126,6 @@ Filename: "{app}\FirstTime.ini"; Section: "FromInno"; Key: "Language"; String: "
 [Tasks]
 Name: desktopicon; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 Name: resetPrefs; Description:  "{cm:ResetPrefs}"; Flags: unchecked
-; No longer allow user to choose whether to associate AUP file type with Tenacity.
-; Name: associate_aup; Description: "&Associate Tenacity project files"; GroupDescription: "Other tasks:"; Flags: checkedonce
 
 [Files]
 ; Prime the first time .ini file so the permissions can be set
@@ -162,7 +159,7 @@ Source: "{#BuildDir}\modules\*"; DestDir: "{app}\modules\"; Flags: ignoreversion
   Fixes the side-by-side installs left by pre-AppId builds. 
 }
 
-const OurAppId = '{47C5FD10-83A8-4266-8CBE-B8052125D409}_is1';
+const OurAppId = '{#AppGuid}_is1';
 
 function LooksLikeTenacity(const RegistryText: String): Boolean;
 begin
@@ -272,8 +269,7 @@ end;
 function HasSystemWidePriorInstall: Boolean;
 begin
   Result := HasPriorTenacityInHive(HKEY_LOCAL_MACHINE_64) or
-            HasPriorTenacityInHive(HKEY_LOCAL_MACHINE_32) or
-            HasPriorTenacityInHive(HKEY_LOCAL_MACHINE);
+            HasPriorTenacityInHive(HKEY_LOCAL_MACHINE_32);
 end;
 
 function RelaunchElevated: Boolean;
@@ -316,7 +312,6 @@ begin
 
   if Result then
   begin
-    UninstallPriorTenacityInHive(HKEY_LOCAL_MACHINE);
     UninstallPriorTenacityInHive(HKEY_LOCAL_MACHINE_64);
     UninstallPriorTenacityInHive(HKEY_LOCAL_MACHINE_32);
     UninstallPriorTenacityInHive(HKEY_CURRENT_USER);
@@ -330,7 +325,7 @@ Name: "{autodesktop}\Tenacity"; Filename: "{app}\tenacity.exe"; Tasks: desktopic
 [InstallDelete]
 
 ; Get rid of previous versions of MSVC runtimes
-; Currently MSVC runtime versions 8, 9, 10, 11, 12, 13
+; MSVC toolset numbers: 80/90/100/110/120 (2005-2013), then 140/141/142/143 (2015-2022).
 Type: files; Name: "{app}\Microsoft.VC80.CRT.manifest"
 Type: files; Name: "{app}\msvcp80.dll"
 Type: files; Name: "{app}\msvcr80.dll"
@@ -346,9 +341,6 @@ Type: files; Name: "{app}\msvcr110.dll"
 Type: files; Name: "{app}\Microsoft.VC120.CRT.manifest"
 Type: files; Name: "{app}\msvcp120.dll"
 Type: files; Name: "{app}\msvcr120.dll"
-Type: files; Name: "{app}\Microsoft.VC130.CRT.manifest"
-Type: files; Name: "{app}\msvcp130.dll"
-Type: files; Name: "{app}\msvcr130.dll"
 
 ; Get rid of previous help folder.
 Type: filesandordirs; Name: "{app}\help"
@@ -401,14 +393,16 @@ Filename: "{app}\tenacity.exe"; Description: "{cm:LaunchProgram,Tenacity}"; Flag
 
 ; Create subdirectories where we'll store the unofficial and dummy translation files
 {#expr Exec("cmd", "/c mkdir """ + "Languages\dummy""", '.\', , SW_HIDE), \
-       Exec("cmd", "/c mkdir """ + "Languages\unofficial""", '.\', , SW_HIDE)}
+       Exec("cmd", "/c mkdir """ + "Languages\unofficial""", '.\', , SW_HIDE), \
+       Exec("cmd", "/c mkdir """ + "Languages\official""", '.\', , SW_HIDE)}
 
-; Download Additional Inno Setup translations from:
-;
-; http://www.jrsoftware.org/files/istrans/
-;
-; Set this to the base of the unofficial  Inno Setup translations
+; Download additional Inno Setup translations from:
+;   http://www.jrsoftware.org/files/istrans/
+
+; Base URL for the unofficial Inno Setup translations
 #define UrlBase "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/"
+; Base URL for the official Inno Setup translations
+#define OfficialUrlBase "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/"
 
 ; PowerShell command run by Get()/GetOfficial().
 ; Forces TLS 1.2+ (default PowerShell 5 negotiates TLS 1.0, which GitHub refuses on some CI runners),
@@ -437,12 +431,10 @@ Filename: "{app}\tenacity.exe"; Description: "{cm:LaunchProgram,Tenacity}"; Flag
     : Error("Failed to download unofficial language file: " + URL)), \
   Local[0]
 
-#define OfficialUrlBase "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/"
-
 ; Same as Get() but instead downloads an official language
 ; (This is to preserve compatibility with older Inno Setup versions)
 #define GetOfficial(URL) \
-  Local[0] = ".\Languages\unofficial\" + Copy(URL, RPos("/", URL) + 1), \
+  Local[0] = ".\Languages\official\" + Copy(URL, RPos("/", URL) + 1), \
   Local[1] = (FileExists(Local[0]) \
     ? "alreadyexists" \
     : Exec("powershell", DownloadCmd(OfficialUrlBase, URL, Local[0]), '.\', , SW_NORMAL)), \
