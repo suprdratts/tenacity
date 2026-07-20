@@ -1,6 +1,9 @@
 name: "CodeQL Analysis"
 
 on:
+  # Daily fallback; the gate below rate-limits actual runs to at most one per MIN_HOURS.
+  schedule:
+    - cron: '0 7 * * *'
   push:
     branches: [ "main" ]
     paths:
@@ -30,13 +33,97 @@ on:
       - '!vcpkg/**'
       - '!tests/**'
       - '!/include/audacity/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  gate:
+    name: Rate-limit gate
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check last successful CodeQL run
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MIN_HOURS: 20
+        run: |
+          set -euo pipefail
+
+          # Paths that CodeQL cares about (mirrors the push: paths: filter).
+          # Positive globs first, then :(exclude) negatives.
+          code_pathspecs=(
+            '*.c' '*.cc' '*.cpp' '*.cxx'
+            '*.h' '*.hh' '*.hpp' '*.hxx'
+            '*.inc' '*.inl' '*.ipp'
+            '*.m' '*.mm'
+            '*.cmake' '*.cmake.in'
+            'CMakeLists.txt' 'CMakePresets.json'
+            'vcpkg.json' 'vcpkg-configuration.json'
+            '.gitmodules'
+            '.github/workflows/codeql-analysis.yml'
+            ':(exclude)lib-src/**'
+            ':(exclude)vcpkg/**'
+            ':(exclude)tests/**'
+            ':(exclude)include/audacity/**'
+          )
+
+          read -r last_at last_sha < <(gh run list \
+            --repo "${{ github.repository }}" \
+            --workflow "${{ github.workflow }}" \
+            --status success \
+            --limit 1 \
+            --json updatedAt,headSha \
+            --jq '.[0] | "\(.updatedAt // "") \(.headSha // "")"')
+
+          if [[ -z "$last_at" || -z "$last_sha" ]]; then
+            echo "No prior successful run — proceeding."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Last successful run: $last_at at $last_sha"
+
+          # Reject if that commit isn't reachable (force-push, deleted branch, etc.) — safer to run.
+          if ! git cat-file -e "${last_sha}^{commit}" 2>/dev/null; then
+            echo "Last successful SHA not in history — proceeding."
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$last_sha"...HEAD -- "${code_pathspecs[@]}")
+          if [[ -z "$changed" ]]; then
+            echo "No code-relevant changes since $last_sha — skipping."
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          age=$(( ( $(date -u +%s) - $(date -u -d "$last_at" +%s) ) / 3600 ))
+          echo "Code changes since last run (${age}h ago):"
+          echo "$changed" | sed 's/^/  /'
+
+          if (( age >= MIN_HOURS )); then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping — under ${MIN_HOURS}h deadband."
+          fi
+
   analyze:
     name: Analyze
+    needs: gate
+    if: needs.gate.outputs.should_run == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       CMAKE_BUILD_TYPE: Release
