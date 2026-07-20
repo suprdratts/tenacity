@@ -233,6 +233,7 @@ jobs:
         -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/install
         -D VCPKG=${{ matrix.config.use_vcpkg }}
         -D SBSMS=ON
+        -D X_VCPKG_APPLOCAL_DEPS_SERIALIZED=ON
         -S .
         -B build
         "${{ matrix.config.additional_cmake_flags }}"
